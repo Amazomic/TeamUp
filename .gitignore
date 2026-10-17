@@ -1,5 +1,6 @@
 # Gradle and Android build output
 .gradle/
+.gradle-user-home/
 **/build/
 local.properties
 
@@ -16,6 +17,7 @@ local.properties
 *.aab
 *.jks
 *.keystore
+signing.properties
 
 # OS and test artifacts
 .DS_Store
