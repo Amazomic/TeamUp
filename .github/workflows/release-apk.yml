@@ -1,0 +1,41 @@
+name: Build and attach Android APK
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build APK for release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Build APK
+        run: chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+
+      - name: Attach APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APK_PATH="app/build/outputs/apk/debug/TeamUp-${VERSION}-Android-debug.apk"
+          gh release upload "$GITHUB_REF_NAME" "$APK_PATH" --repo "$GITHUB_REPOSITORY" --clobber

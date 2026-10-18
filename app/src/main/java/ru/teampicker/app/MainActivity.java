@@ -248,14 +248,37 @@ public class MainActivity extends Activity {
     }
 
     private void generateTeams() {
-        List<Integer> shuffled = new ArrayList<>();
-        for (int team = 0; team < teamCount; team++) {
-            int size = playerCount / teamCount + (team < playerCount % teamCount ? 1 : 0);
-            for (int i = 0; i < size; i++) shuffled.add(team);
+        List<Integer> previous = new ArrayList<>();
+        for (int i = 0; i < playerCount; i++) previous.add(assignmentAt(i));
+
+        List<Integer> best = null;
+        int bestScore = Integer.MAX_VALUE;
+        for (int attempt = 0; attempt < 512; attempt++) {
+            List<Integer> candidate = new ArrayList<>();
+            for (int team = 0; team < teamCount; team++) {
+                int size = playerCount / teamCount + (team < playerCount % teamCount ? 1 : 0);
+                for (int i = 0; i < size; i++) candidate.add(team);
+            }
+            Collections.shuffle(candidate);
+
+            int score = 0;
+            for (int i = 0; i < playerCount; i++) {
+                if (candidate.get(i).equals(previous.get(i))) score++;
+                for (int j = i + 1; j < playerCount; j++) {
+                    if (previous.get(i).equals(previous.get(j))
+                        && candidate.get(i).equals(candidate.get(j))) {
+                        score += playerCount + 1;
+                    }
+                }
+            }
+            if (score < bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
         }
-        Collections.shuffle(shuffled);
+
         assignments.clear();
-        assignments.addAll(shuffled);
+        assignments.addAll(best);
         for (int i = 0; i < playerCount; i++) {
             int team = assignmentAt(i);
             LinearLayout card = (LinearLayout) playerList.getChildAt(i);

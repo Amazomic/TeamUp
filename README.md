@@ -15,7 +15,7 @@
 
 ## Download
 
-Get source snapshots and release notes from [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). An Android APK will be attached when a distributable build is available.
+Get the source and release notes from [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). Each published release automatically builds and attaches `TeamUp-<version>-Android-debug.apk` for direct installation. It is debug-signed; uninstall the earlier GitHub APK before installing a later one.
 
 ## Build from source
 
@@ -25,7 +25,7 @@ Requirements: Android Studio with JDK 17 or newer and Android SDK Platform 36.
 .\gradlew.bat assembleDebug
 ```
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+The APK is written to `app/build/outputs/apk/debug/TeamUp-<version>-Android-debug.apk`.
 
 To build the Play Store App Bundle, configure your own upload key as described in [`signing.properties.example`](signing.properties.example), then run:
 

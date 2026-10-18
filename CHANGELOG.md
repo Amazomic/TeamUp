@@ -8,6 +8,8 @@
 - Saved the latest player names, settings, and team assignments locally.
 - Updated the Android target to API 36 for current Google Play requirements.
 - Prepared the project for a signed Play Store App Bundle.
+- Reduced repeated player pairings between consecutive team draws.
+- Added a release workflow that attaches a clearly named Android APK.
 
 ## 1.1
 

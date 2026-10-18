@@ -42,3 +42,9 @@ android {
         }
     }
 }
+
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        outputFileName = "TeamUp-${variant.versionName}-Android-${variant.buildType.name}.apk"
+    }
+}
