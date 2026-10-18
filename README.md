@@ -15,17 +15,17 @@
 
 ## Download
 
-Get the source and release notes from [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). Each published release automatically builds and attaches `TeamUp-<version>-Android-debug.apk` for direct installation. It is debug-signed; uninstall the earlier GitHub APK before installing a later one.
+Get the signed Android APK and release notes from [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). APK files are named `TeamUp-<version>-Android.apk`.
 
 ## Build from source
 
-Requirements: Android Studio with JDK 17 or newer and Android SDK Platform 36.
+Requirements: Android Studio with JDK 17 or newer, Android SDK Platform 36, and a signing key configured in `signing.properties` (see `signing.properties.example`). Keep the keystore and signing properties private.
 
 ```powershell
-.\gradlew.bat assembleDebug
+.\gradlew.bat assembleRelease
 ```
 
-The APK is written to `app/build/outputs/apk/debug/TeamUp-<version>-Android-debug.apk`.
+The signed APK is written to `app/build/outputs/apk/release/TeamUp-<version>-Android.apk`.
 
 To build the Play Store App Bundle, configure your own upload key as described in [`signing.properties.example`](signing.properties.example), then run:
 
@@ -42,7 +42,7 @@ Player names, team settings, and draw history are stored locally on the device. 
 ## Project details
 
 - Application ID: `ru.teampicker.app`
-- Current version: `1.2.0` (version code `3`)
+- Current version: `1.2.1` (version code `4`)
 - Minimum Android version: Android 6.0 (API 23)
 - Target Android version: Android 16 (API 36)
 

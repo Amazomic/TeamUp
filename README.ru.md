@@ -15,17 +15,17 @@
 
 ## Скачать
 
-Исходный код и заметки к версиям доступны в [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). При публикации каждого релиза GitHub Actions соберёт APK с понятным именем `TeamUp-<версия>-Android-debug.apk`. Это тестовая сборка с отладочной подписью: перед установкой следующего APK удалите предыдущий.
+Подписанный APK и заметки к версиям доступны в [GitHub Releases](https://github.com/Amazomic/TeamUp/releases). Файл называется `TeamUp-<версия>-Android.apk`.
 
 ## Сборка из исходного кода
 
-Требуются Android Studio с JDK 17 или новее и Android SDK Platform 36.
+Требуются Android Studio с JDK 17 или новее, Android SDK Platform 36 и настроенный ключ подписи в `signing.properties` (см. `signing.properties.example`). Не публикуйте keystore и файл настроек подписи.
 
 ```powershell
-.\gradlew.bat assembleDebug
+.\gradlew.bat assembleRelease
 ```
 
-APK появится в `app/build/outputs/apk/debug/TeamUp-<версия>-Android-debug.apk`.
+Подписанный APK появится в `app/build/outputs/apk/release/TeamUp-<версия>-Android.apk`.
 
 Для создания App Bundle Google Play настройте собственный ключ, скопировав [`signing.properties.example`](signing.properties.example) в `signing.properties`, затем выполните:
 
@@ -42,7 +42,7 @@ APK появится в `app/build/outputs/apk/debug/TeamUp-<версия>-Andro
 ## Сведения о проекте
 
 - Application ID: `ru.teampicker.app`
-- Версия: `1.2.0` (version code `3`)
+- Версия: `1.2.1` (version code `4`)
 - Минимальная версия Android: Android 6.0 (API 23)
 - Целевая версия Android: Android 16 (API 36)
 

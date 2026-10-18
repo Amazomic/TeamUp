@@ -24,8 +24,8 @@ android {
         applicationId 'ru.teampicker.app'
         minSdk 23
         targetSdk 36
-        versionCode 3
-        versionName '1.2.0'
+        versionCode 4
+        versionName '1.2.1'
     }
 
     compileOptions {
@@ -45,6 +45,6 @@ android {
 
 android.applicationVariants.all { variant ->
     variant.outputs.all { output ->
-        outputFileName = "TeamUp-${variant.versionName}-Android-${variant.buildType.name}.apk"
+        outputFileName = "TeamUp-${variant.versionName}-Android.apk"
     }
 }

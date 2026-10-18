@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-10-18
+
+- Avoid repeated player pairs in consecutive team draws when possible.
+- Publish a signed release APK with a clear filename.
+
 ## 1.2.0 — 2026-10-17
 
 - Added a TeamUp launcher icon.
@@ -9,7 +14,6 @@
 - Updated the Android target to API 36 for current Google Play requirements.
 - Prepared the project for a signed Play Store App Bundle.
 - Reduced repeated player pairings between consecutive team draws.
-- Added a release workflow that attaches a clearly named Android APK.
 
 ## 1.1
 
