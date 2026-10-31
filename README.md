@@ -8,7 +8,7 @@
 
 - Set 2–30 players and 2–8 teams with simple steppers.
 - Enter player names and see each assignment in a team color.
-- Shuffle teams without rebuilding the player list.
+- Shuffle entire player rows between contiguous color-coded teams with animated movement and smooth color transitions.
 - Review or delete individual draws in the history.
 - Keep the latest player names, settings, and assignments on the device.
 - No account, ads, analytics, or network access.
@@ -42,7 +42,7 @@ Player names, team settings, and draw history are stored locally on the device. 
 ## Project details
 
 - Application ID: `ru.teampicker.app`
-- Current version: `1.2.1` (version code `4`)
+- Current version: `1.3.0` (version code `8`)
 - Minimum Android version: Android 6.0 (API 23)
 - Target Android version: Android 16 (API 36)
 
