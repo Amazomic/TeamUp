@@ -1,5 +1,9 @@
 package ru.teampicker.app;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
@@ -15,6 +19,7 @@ import android.text.TextWatcher;
 import android.text.Editable;
 import android.view.Gravity;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
@@ -53,6 +58,8 @@ public class MainActivity extends Activity {
     private int playerCount = 6;
     private int teamCount = 2;
     private boolean changingFields;
+    private boolean isShuffling;
+    private ValueAnimator shuffleAnimator;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +79,12 @@ public class MainActivity extends Activity {
         buildScreen();
     }
 
+    @Override protected void onStop() {
+        // Finish an interrupted draw so fields never remain hidden.
+        if (shuffleAnimator != null) shuffleAnimator.end();
+        super.onStop();
+    }
+
     private void buildScreen() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -84,6 +97,7 @@ public class MainActivity extends Activity {
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
+        page.setClipChildren(false);
         page.setPadding(dp(18), dp(12), dp(18), dp(24));
         scroll.addView(page);
         setContentView(scroll);
@@ -116,6 +130,8 @@ public class MainActivity extends Activity {
 
         playerList = new LinearLayout(this);
         playerList.setOrientation(LinearLayout.VERTICAL);
+        playerList.setClipChildren(false);
+        playerList.setClipToPadding(false);
         LinearLayout.LayoutParams listLp = matchWrap();
         listLp.topMargin = dp(14);
         page.addView(playerList, listLp);
@@ -159,6 +175,7 @@ public class MainActivity extends Activity {
 
         if (players) playerValue = value; else teamValue = value;
         minus.setOnClickListener(v -> {
+            if (isShuffling) return;
             if (players && playerCount > 2) {
                 playerCount--;
                 if (teamCount > playerCount) teamCount = playerCount;
@@ -175,6 +192,7 @@ public class MainActivity extends Activity {
             }
         });
         plus.setOnClickListener(v -> {
+            if (isShuffling) return;
             if (players && playerCount < 30) {
                 playerCount++;
                 resetBalancedAssignments();
@@ -210,7 +228,7 @@ public class MainActivity extends Activity {
             final int index = i;
             LinearLayout card = new LinearLayout(this);
             card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setPadding(dp(12), dp(5), dp(8), dp(5));
+            card.setPadding(dp(12), dp(5), dp(12), dp(5));
             card.setBackground(rowBackground(colorForTeam(assignmentAt(i))));
             LinearLayout.LayoutParams cardLp = matchWrap();
             cardLp.bottomMargin = dp(7);
@@ -228,7 +246,7 @@ public class MainActivity extends Activity {
             name.setPadding(dp(3), 0, dp(6), 0);
             if (i < oldNames.size()) name.setText(oldNames.get(i));
             else name.setText(preferences.getString("name_" + i, ""));
-            card.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1f));
+            card.addView(name, new LinearLayout.LayoutParams(-1, dp(48)));
             nameFields.add(name);
             name.addTextChangedListener(new TextWatcher() {
                 @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -238,35 +256,42 @@ public class MainActivity extends Activity {
                 @Override public void afterTextChanged(Editable e) {}
             });
 
-            TextView team = text(String.valueOf(assignmentAt(i) + 1), 14, Color.WHITE, true);
-            team.setGravity(Gravity.CENTER);
-            team.setBackground(round(colorForTeam(assignmentAt(i)), 12));
-            card.addView(team, new LinearLayout.LayoutParams(dp(40), dp(36)));
         }
         changingFields = false;
         saveNames();
     }
 
     private void generateTeams() {
-        List<Integer> previous = new ArrayList<>();
-        for (int i = 0; i < playerCount; i++) previous.add(assignmentAt(i));
+        if (isShuffling) return;
+        // Team colors stay in fixed, contiguous blocks; shuffle player names instead.
+        List<String> names = new ArrayList<>();
+        List<Integer> previousTeams = new ArrayList<>();
+        List<Integer> targetTeams = new ArrayList<>();
+        for (int i = 0; i < playerCount; i++) {
+            String enteredName = nameFields.get(i).getText().toString();
+            // Give unnamed players stable identities so their movement is visible, too.
+            names.add(enteredName.trim().isEmpty() ? "Player " + (i + 1) : enteredName);
+            previousTeams.add(assignmentAt(i));
+        }
+        for (int team = 0; team < teamCount; team++) {
+            int size = playerCount / teamCount + (team < playerCount % teamCount ? 1 : 0);
+            for (int i = 0; i < size; i++) targetTeams.add(team);
+        }
 
         List<Integer> best = null;
         int bestScore = Integer.MAX_VALUE;
         for (int attempt = 0; attempt < 512; attempt++) {
             List<Integer> candidate = new ArrayList<>();
-            for (int team = 0; team < teamCount; team++) {
-                int size = playerCount / teamCount + (team < playerCount % teamCount ? 1 : 0);
-                for (int i = 0; i < size; i++) candidate.add(team);
-            }
+            for (int i = 0; i < playerCount; i++) candidate.add(i);
             Collections.shuffle(candidate);
 
             int score = 0;
             for (int i = 0; i < playerCount; i++) {
-                if (candidate.get(i).equals(previous.get(i))) score++;
+                int oldPlayer = candidate.get(i);
+                if (oldPlayer == i) score += playerCount + 1;
                 for (int j = i + 1; j < playerCount; j++) {
-                    if (previous.get(i).equals(previous.get(j))
-                        && candidate.get(i).equals(candidate.get(j))) {
+                    if (previousTeams.get(oldPlayer).equals(previousTeams.get(candidate.get(j)))
+                        && targetTeams.get(i).equals(targetTeams.get(j))) {
                         score += playerCount + 1;
                     }
                 }
@@ -277,25 +302,102 @@ public class MainActivity extends Activity {
             }
         }
 
-        assignments.clear();
-        assignments.addAll(best);
-        for (int i = 0; i < playerCount; i++) {
-            int team = assignmentAt(i);
-            LinearLayout card = (LinearLayout) playerList.getChildAt(i);
-            card.setBackground(rowBackground(colorForTeam(team)));
-            TextView badge = (TextView) card.getChildAt(1);
-            badge.setText(String.valueOf(team + 1));
-            badge.setBackground(round(colorForTeam(team), 12));
-            card.setAlpha(0f);
-            card.setScaleX(.97f);
-            card.setScaleY(.97f);
-            card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(190L).start();
-            badge.setScaleX(.75f);
-            badge.setScaleY(.75f);
-            badge.animate().scaleX(1f).scaleY(1f).setDuration(220L).start();
+        animateShuffle(names, best, previousTeams, targetTeams);
+    }
+
+    private void animateShuffle(List<String> names, List<Integer> order,
+                                List<Integer> previousTeams, List<Integer> targetTeams) {
+        // Each real card travels from its current row to the destination row.
+        // At completion the layouts stay put, but their names are permuted.
+        int count = playerCount;
+        final int[] destinations = new int[count];
+        for (int destination = 0; destination < count; destination++) {
+            destinations[order.get(destination)] = destination;
         }
-        saveAssignments();
-        addHistoryEntry();
+
+        final List<LinearLayout> cards = new ArrayList<>();
+        final List<GradientDrawable> backgrounds = new ArrayList<>();
+        final float[] verticalDistances = new float[count];
+
+        for (int source = 0; source < count; source++) {
+            LinearLayout card = (LinearLayout) playerList.getChildAt(source);
+            LinearLayout target = (LinearLayout) playerList.getChildAt(destinations[source]);
+            verticalDistances[source] = target.getTop() - card.getTop();
+            cards.add(card);
+
+            GradientDrawable background = rowBackground(colorForTeam(previousTeams.get(source)));
+            card.setBackground(background);
+            backgrounds.add(background);
+            card.setElevation(dp(3));
+        }
+
+        isShuffling = true;
+        shuffleAnimator = ValueAnimator.ofFloat(0f, 1f);
+        shuffleAnimator.setDuration(1190L);
+        shuffleAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        final ArgbEvaluator colorEvaluator = new ArgbEvaluator();
+        shuffleAnimator.addUpdateListener(animation -> {
+            float progress = (float) animation.getAnimatedValue();
+            for (int source = 0; source < count; source++) {
+                int destination = destinations[source];
+                LinearLayout card = cards.get(source);
+                // Shrink on departure, keep compact while crossing, and grow on arrival.
+                float shrinkPhase = Math.min(1f, Math.min(progress / .16f,
+                    (1f - progress) / .16f));
+                float scale = 1f - .14f * Math.max(0f, shrinkPhase);
+                card.setScaleX(scale);
+                card.setScaleY(scale);
+                card.setTranslationY(verticalDistances[source] * progress);
+
+                float curve = (float) Math.sin(Math.PI * progress);
+                float side = dp(11 + (source % 3) * 3) * (source % 2 == 0 ? 1f : -1f);
+                float offset = source == destination ? 0f : side * curve;
+                // Keep the entire animated card within the list's visible width.
+                float inset = (1f - scale) * card.getWidth() / 2f;
+                float minOffset = -card.getLeft() - inset;
+                float maxOffset = playerList.getWidth() - card.getRight() + inset;
+                if (minOffset > maxOffset) offset = 0f;
+                else offset = Math.max(minOffset, Math.min(maxOffset, offset));
+                card.setTranslationX(offset);
+
+                int from = colorForTeam(previousTeams.get(source));
+                int to = colorForTeam(targetTeams.get(destination));
+                int blended = (Integer) colorEvaluator.evaluate(progress, from, to);
+                GradientDrawable background = backgrounds.get(source);
+                background.setColor(withAlpha(blended, 38));
+                background.setStroke(dp(1), withAlpha(blended, 105));
+            }
+        });
+        shuffleAnimator.addListener(new AnimatorListenerAdapter() {
+            private boolean finished;
+            private void finish() {
+                if (finished) return;
+                finished = true;
+                // All animated cards have arrived; adopt the final order and colors.
+                changingFields = true;
+                for (int destination = 0; destination < count; destination++) {
+                    nameFields.get(destination).setText(names.get(order.get(destination)));
+                }
+                changingFields = false;
+                saveNames();
+                assignments.clear();
+                assignments.addAll(targetTeams);
+                for (LinearLayout card : cards) {
+                    card.setTranslationX(0f);
+                    card.setTranslationY(0f);
+                    card.setScaleX(1f);
+                    card.setScaleY(1f);
+                    card.setElevation(0f);
+                }
+                updateRowColors();
+                addHistoryEntry();
+                isShuffling = false;
+                shuffleAnimator = null;
+            }
+            @Override public void onAnimationEnd(Animator animation) { finish(); }
+            @Override public void onAnimationCancel(Animator animation) { finish(); }
+        });
+        shuffleAnimator.start();
     }
 
     private void pressFeedback(View view) {
@@ -397,13 +499,11 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams personLp = matchWrap();
                 personLp.topMargin = dp(5);
                 card.addView(person, personLp);
-                TextView name = text(entry.names.get(i), 13, INK, false);
-                person.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
                 int team = i < entry.teams.size() ? Math.max(0, Math.min(TEAM_COLORS.length - 1, entry.teams.get(i))) : 0;
-                TextView badge = text(String.valueOf(team + 1), 11, Color.WHITE, true);
-                badge.setGravity(Gravity.CENTER);
-                badge.setBackground(round(colorForTeam(team), 8));
-                person.addView(badge, new LinearLayout.LayoutParams(dp(26), dp(23)));
+                person.setPadding(dp(10), dp(8), dp(10), dp(8));
+                person.setBackground(rowBackground(colorForTeam(team)));
+                TextView name = text(entry.names.get(i), 13, INK, false);
+                person.addView(name, new LinearLayout.LayoutParams(-1, -2));
             }
         }
     }
@@ -459,9 +559,6 @@ public class MainActivity extends Activity {
             int team = assignmentAt(i);
             LinearLayout card = (LinearLayout) playerList.getChildAt(i);
             card.setBackground(rowBackground(colorForTeam(team)));
-            TextView badge = (TextView) card.getChildAt(1);
-            badge.setText(String.valueOf(team + 1));
-            badge.setBackground(round(colorForTeam(team), 12));
         }
         saveAssignments();
     }
@@ -519,9 +616,9 @@ public class MainActivity extends Activity {
 
     private GradientDrawable rowBackground(int color) {
         GradientDrawable background = new GradientDrawable();
-        background.setColor(withAlpha(color, 24));
+        background.setColor(withAlpha(color, 38));
         background.setCornerRadius(dp(15));
-        background.setStroke(dp(1), withAlpha(color, 78));
+        background.setStroke(dp(1), withAlpha(color, 105));
         return background;
     }
 
