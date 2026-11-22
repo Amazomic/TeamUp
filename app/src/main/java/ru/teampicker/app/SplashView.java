@@ -15,6 +15,7 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.view.View;
+import android.view.MotionEvent;
 
 /**
  * Frame-synchronized intro: the six approved storyboard key poses are rendered
@@ -49,13 +50,13 @@ final class SplashView extends View {
     private ValueAnimator animator;
     private Runnable onFinished;
     private boolean completed;
+    private final SplashHoldState holdState = new SplashHoldState();
 
     SplashView(Context context) {
         super(context);
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         setClickable(true);
-        setContentDescription("TeamUp. Shuffle into teams");
-        setOnClickListener(v -> finish());
+        setContentDescription("TeamUp. Touch and hold to view the finished logo, release to continue.");
 
         ring.setStyle(Paint.Style.STROKE);
         ring.setStrokeWidth(15f);
@@ -107,7 +108,42 @@ final class SplashView extends View {
         animator.start();
     }
 
+    @Override public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                if (holdState.press()) {
+                    // Render the FINAL card immediately and keep it for as long as held.
+                    if (animator != null) {
+                        animator.removeAllListeners();
+                        animator.cancel();
+                        animator = null;
+                    }
+                    progress = 1f;
+                    invalidate();
+                }
+                return true;
+            case MotionEvent.ACTION_UP:
+                performClick();
+                if (holdState.release()) completeIntro();
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                if (holdState.release()) completeIntro();
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    @Override public boolean performClick() {
+        super.performClick();
+        return true;
+    }
+
     void finish() {
+        if (holdState.animationFinished()) completeIntro();
+    }
+
+    private void completeIntro() {
         if (completed) return;
         completed = true;
         if (animator != null) {

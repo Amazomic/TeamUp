@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.4 — 2026-11-22
+
+- Touch and hold the animated splash to display the complete TeamUp logo and tagline for as long as needed; release to enter the app with the smooth transition.
+- Add a theme switcher beside History: Light → Dark → Color → Light, with coherent backgrounds, cards, buttons, name inputs and history dialog styling.
+- Persist the selected theme across restarts without changing player names, assignments or history.
+- Add regression tests for the hold lifecycle, theme cycling and color contrast.
+
 ## 1.3.3 — 2026-11-22
 
 - Replace the abrupt end of the startup animation with a smooth 540 ms crossfade into the main screen.

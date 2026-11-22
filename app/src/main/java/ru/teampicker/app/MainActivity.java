@@ -41,10 +41,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final int BG = Color.rgb(246, 247, 251);
-    private static final int INK = Color.rgb(34, 42, 59);
-    private static final int MUTED = Color.rgb(119, 128, 147);
-    private static final int ACCENT = Color.rgb(79, 96, 224);
+    private int BG;
+    private int INK;
+    private int MUTED;
+    private int ACCENT;
     private static final int SPLASH_STATUS_BAR = Color.rgb(5, 111, 138);
     private static final int SPLASH_NAV_BAR = Color.rgb(22, 46, 125);
     private static final int[] TEAM_COLORS = {
@@ -55,6 +55,7 @@ public class MainActivity extends Activity {
     };
 
     private SharedPreferences preferences;
+    private ThemePalette theme;
     private LinearLayout page, playerList;
     private TextView playerValue, teamValue;
     private final List<EditText> nameFields = new ArrayList<>();
@@ -72,16 +73,14 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences("teamup", MODE_PRIVATE);
+        applyTheme(ThemePalette.of(preferences.getInt("ui_theme", ThemePalette.LIGHT)));
         playerCount = Math.max(2, Math.min(30, preferences.getInt("players", 6)));
         teamCount = Math.max(2, Math.min(Math.min(8, playerCount), preferences.getInt("teams", 2)));
         loadAssignments();
         loadHistory();
 
+        configureSystemBars();
         Window window = getWindow();
-        window.setStatusBarColor(BG);
-        window.setNavigationBarColor(BG);
-        window.getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
             | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
@@ -100,6 +99,45 @@ public class MainActivity extends Activity {
         // Finish an interrupted draw so fields never remain hidden.
         if (shuffleAnimator != null) shuffleAnimator.end();
         super.onStop();
+    }
+
+    private void applyTheme(ThemePalette next) {
+        theme = next;
+        BG = next.background;
+        INK = next.ink;
+        MUTED = next.muted;
+        ACCENT = next.accent;
+    }
+
+    private void configureSystemBars() {
+        Window window = getWindow();
+        window.setStatusBarColor(BG);
+        window.setNavigationBarColor(BG);
+        window.getDecorView().setSystemUiVisibility(theme.dark ? 0 :
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+    }
+
+    private void cycleTheme() {
+        if (shuffleAnimator != null) shuffleAnimator.end();
+        dismissKeyboard();
+        saveNames();
+        ThemePalette next = ThemePalette.of(ThemePalette.next(theme.mode));
+        applyTheme(next);
+        preferences.edit().putInt("ui_theme", next.mode).apply();
+        configureSystemBars();
+        buildScreen();
+        // Delicate feedback without flashing to a blank screen.
+        FrameLayout content = findViewById(android.R.id.content);
+        View screen = content.getChildAt(0);
+        if (screen != null) {
+            screen.setAlpha(.94f);
+            screen.animate().alpha(1f).setDuration(160L).start();
+        }
+    }
+
+    private int dialogTheme() {
+        return theme.dark ? android.R.style.Theme_Material_Dialog_Alert
+                          : android.R.style.Theme_Material_Light_Dialog_Alert;
     }
 
     private void showSplash() {
@@ -177,18 +215,19 @@ public class MainActivity extends Activity {
             mainContent.setTranslationY(0f);
             mainContent = null;
         }
-        Window window = getWindow();
-        window.setStatusBarColor(BG);
-        window.setNavigationBarColor(BG);
-        window.getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        configureSystemBars();
         if (page != null) page.requestFocus();
     }
 
     private void buildScreen() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setBackgroundColor(BG);
+        if (theme.mode == ThemePalette.COLOR) {
+            scroll.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{theme.background, 0xFFE2F6FF, theme.backgroundEnd}));
+        } else {
+            scroll.setBackgroundColor(BG);
+        }
         scroll.setClipToPadding(false);
         scroll.setOnApplyWindowInsetsListener((view, insets) -> {
             view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
@@ -210,10 +249,24 @@ public class MainActivity extends Activity {
         TextView title = text("TeamUp", 25, INK, true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(title, new LinearLayout.LayoutParams(0, -1, 1f));
+        TextView themeButton = text(theme.symbol + " " + theme.label, 13, ACCENT, true);
+        themeButton.setGravity(Gravity.CENTER);
+        themeButton.setPadding(dp(11), 0, dp(11), 0);
+        themeButton.setBackground(ripple(theme.control, 12, withAlpha(ACCENT, 40)));
+        themeButton.setContentDescription("Theme " + theme.label + ". Tap for " +
+            ThemePalette.of(ThemePalette.next(theme.mode)).label + " theme");
+        header.addView(themeButton, new LinearLayout.LayoutParams(-2, dp(36)));
+        themeButton.setOnClickListener(v -> {
+            pressFeedback(v);
+            cycleTheme();
+        });
+        View headerGap = new View(this);
+        header.addView(headerGap, new LinearLayout.LayoutParams(dp(8), 1));
+
         TextView historyButton = text("History", 13, ACCENT, true);
         historyButton.setGravity(Gravity.CENTER);
         historyButton.setPadding(dp(13), 0, dp(13), 0);
-        historyButton.setBackground(ripple(Color.WHITE, 12, withAlpha(ACCENT, 35)));
+        historyButton.setBackground(ripple(theme.surface, 12, withAlpha(ACCENT, 35)));
         header.addView(historyButton, new LinearLayout.LayoutParams(-2, dp(36)));
         historyButton.setOnClickListener(v -> {
             dismissKeyboard();
@@ -240,9 +293,9 @@ public class MainActivity extends Activity {
         page.addView(playerList, listLp);
         rebuildPlayerRows();
 
-        TextView generate = text("Generate teams", 16, Color.WHITE, true);
+        TextView generate = text("Generate teams", 16, theme.onAccent, true);
         generate.setGravity(Gravity.CENTER);
-        generate.setBackground(ripple(ACCENT, 16, withAlpha(Color.WHITE, 55)));
+        generate.setBackground(ripple(ACCENT, 16, withAlpha(theme.onAccent, 55)));
         LinearLayout.LayoutParams buttonLp = matchWrap();
         buttonLp.height = dp(54);
         buttonLp.topMargin = dp(14);
@@ -260,7 +313,7 @@ public class MainActivity extends Activity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(12), dp(10), dp(12), dp(10));
-        box.setBackground(round(Color.WHITE, 16));
+        box.setBackground(round(theme.surface, 16));
 
         TextView heading = text(title, 13, MUTED, true);
         box.addView(heading);
@@ -321,7 +374,7 @@ public class MainActivity extends Activity {
     private TextView stepButton(String symbol) {
         TextView button = text(symbol, 22, ACCENT, false);
         button.setGravity(Gravity.CENTER);
-        button.setBackground(ripple(Color.rgb(240, 242, 251), 11, withAlpha(ACCENT, 45)));
+        button.setBackground(ripple(theme.control, 11, withAlpha(ACCENT, 45)));
         return button;
     }
 
@@ -346,7 +399,7 @@ public class MainActivity extends Activity {
             name.setSingleLine(true);
             name.setTextSize(15);
             name.setTextColor(INK);
-            name.setHintTextColor(Color.rgb(151, 159, 176));
+            name.setHintTextColor(theme.hint);
             name.setHint("Player " + (i + 1));
             name.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             name.setImeOptions(i == playerCount - 1 ? EditorInfo.IME_ACTION_DONE : EditorInfo.IME_ACTION_NEXT);
@@ -558,7 +611,7 @@ public class MainActivity extends Activity {
         scroll.setPadding(dp(20), dp(4), dp(20), dp(4));
         scroll.setClipToPadding(false);
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, dialogTheme())
             .setTitle("History")
             .setView(scroll)
             .setNeutralButton("Clear all", null)
@@ -567,7 +620,7 @@ public class MainActivity extends Activity {
         dialog.setOnShowListener(ignored -> {
             dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> {
                 if (history.isEmpty()) return;
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(this, dialogTheme())
                     .setTitle("Clear history?")
                     .setMessage("All saved team draws will be deleted.")
                     .setNegativeButton("Cancel", null)
@@ -598,7 +651,7 @@ public class MainActivity extends Activity {
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setPadding(dp(12), dp(10), dp(10), dp(10));
-            card.setBackground(round(Color.rgb(247, 248, 252), 14));
+            card.setBackground(round(theme.historySurface, 14));
             LinearLayout.LayoutParams cardLp = matchWrap();
             cardLp.bottomMargin = dp(8);
             list.addView(card, cardLp);
