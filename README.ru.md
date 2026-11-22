@@ -42,7 +42,7 @@
 ## Сведения о проекте
 
 - Application ID: `ru.teampicker.app`
-- Версия: `1.3.4` (version code `12`)
+- Версия: `1.3.5` (version code `13`)
 - Минимальная версия Android: Android 6.0 (API 23)
 - Целевая версия Android: Android 16 (API 36)
 

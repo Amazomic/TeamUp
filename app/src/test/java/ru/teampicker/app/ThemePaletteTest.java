@@ -1,6 +1,6 @@
 package ru.teampicker.app;
 
-/** Full three-mode cycle, normalization and legible text colors. */
+/** Two-mode theme cycle, migration from legacy color mode and legible text colors. */
 public final class ThemePaletteTest {
     private static void require(boolean value, String message) {
         if (!value) throw new AssertionError(message);
@@ -24,9 +24,10 @@ public final class ThemePaletteTest {
         require(ThemePalette.normalize(-10) == ThemePalette.LIGHT, "negative mode");
         require(ThemePalette.normalize(123) == ThemePalette.LIGHT, "invalid mode");
         require(ThemePalette.next(ThemePalette.LIGHT) == ThemePalette.DARK, "light -> dark");
-        require(ThemePalette.next(ThemePalette.DARK) == ThemePalette.COLOR, "dark -> color");
-        require(ThemePalette.next(ThemePalette.COLOR) == ThemePalette.LIGHT, "color -> light");
-        for (int mode = 0; mode < 3; mode++) {
+        require(ThemePalette.next(ThemePalette.DARK) == ThemePalette.LIGHT, "dark -> light");
+        require(ThemePalette.normalize(2) == ThemePalette.LIGHT, "legacy color theme -> light");
+        require(ThemePalette.next(2) == ThemePalette.DARK, "legacy color cycles from light to dark");
+        for (int mode = 0; mode < 2; mode++) {
             ThemePalette t = ThemePalette.of(mode);
             require(t.mode == mode, "correct mode");
             require(!t.label.isEmpty(), "visible theme label");
@@ -38,7 +39,7 @@ public final class ThemePaletteTest {
             require(contrast(t.hint, t.background) >= 3.0, "placeholder visible: " + mode);
         }
         require(ThemePalette.of(ThemePalette.DARK).dark, "dark status bar flag");
-        require(!ThemePalette.of(ThemePalette.COLOR).dark, "color uses light system icons");
+        require(!ThemePalette.of(ThemePalette.LIGHT).dark, "light status bar flag");
         System.out.println("ThemePaletteTest PASS");
     }
 }

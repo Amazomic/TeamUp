@@ -1,10 +1,9 @@
 package ru.teampicker.app;
 
-/** Centralized UI palette with a persistent, three-state cycle. Pure Java for testing. */
+/** Centralized UI palette with persistent light/dark cycle. Pure Java for testing. */
 final class ThemePalette {
     static final int LIGHT = 0;
     static final int DARK = 1;
-    static final int COLOR = 2;
 
     final int mode;
     final String label;
@@ -42,11 +41,11 @@ final class ThemePalette {
     }
 
     static int normalize(int mode) {
-        return mode >= LIGHT && mode <= COLOR ? mode : LIGHT;
+        return mode == DARK ? DARK : LIGHT;
     }
 
     static int next(int mode) {
-        return (normalize(mode) + 1) % 3;
+        return normalize(mode) == LIGHT ? DARK : LIGHT;
     }
 
     static ThemePalette of(int requestedMode) {
@@ -56,11 +55,6 @@ final class ThemePalette {
                         0xFF101827, 0xFF18243C, 0xFFF0F4FF, 0xFFB5C2D6,
                         0xFF91B5FF, 0xFF101827, 0xFF1C293D, 0xFF27334B,
                         0xFFA7B6CF, 0xFF24334A, true);
-            case COLOR:
-                return new ThemePalette(COLOR, "Color", "✦",
-                        0xFFE5FAF4, 0xFFF6E8FF, 0xFF183247, 0xFF486577,
-                        0xFF087584, 0xFFFFFFFF, 0xFFFCFEFF, 0xFFC8EEE9,
-                        0xFF577A85, 0xFFFFF2E7, false);
             default:
                 return new ThemePalette(LIGHT, "Light", "☼",
                         0xFFF6F7FB, 0xFFF6F7FB, 0xFF222A3B, 0xFF667188,

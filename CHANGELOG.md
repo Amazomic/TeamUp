@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.5 — 2026-11-22
+
+- Simplify the theme switcher to Light and Dark only, alternating on each tap.
+- Show only the sun or moon icon next to History; keep accessible content descriptions.
+- Previously saved Color theme now falls back to Light, without affecting player names or history.
+
 ## 1.3.4 — 2026-11-22
 
 - Touch and hold the animated splash to display the complete TeamUp logo and tagline for as long as needed; release to enter the app with the smooth transition.

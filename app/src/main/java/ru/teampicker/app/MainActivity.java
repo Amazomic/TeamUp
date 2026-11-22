@@ -222,12 +222,7 @@ public class MainActivity extends Activity {
     private void buildScreen() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        if (theme.mode == ThemePalette.COLOR) {
-            scroll.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{theme.background, 0xFFE2F6FF, theme.backgroundEnd}));
-        } else {
-            scroll.setBackgroundColor(BG);
-        }
+        scroll.setBackgroundColor(BG);
         scroll.setClipToPadding(false);
         scroll.setOnApplyWindowInsetsListener((view, insets) -> {
             view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
@@ -249,13 +244,12 @@ public class MainActivity extends Activity {
         TextView title = text("TeamUp", 25, INK, true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(title, new LinearLayout.LayoutParams(0, -1, 1f));
-        TextView themeButton = text(theme.symbol + " " + theme.label, 13, ACCENT, true);
+        TextView themeButton = text(theme.symbol, 23, ACCENT, false);
         themeButton.setGravity(Gravity.CENTER);
-        themeButton.setPadding(dp(11), 0, dp(11), 0);
         themeButton.setBackground(ripple(theme.control, 12, withAlpha(ACCENT, 40)));
         themeButton.setContentDescription("Theme " + theme.label + ". Tap for " +
             ThemePalette.of(ThemePalette.next(theme.mode)).label + " theme");
-        header.addView(themeButton, new LinearLayout.LayoutParams(-2, dp(36)));
+        header.addView(themeButton, new LinearLayout.LayoutParams(dp(40), dp(36)));
         themeButton.setOnClickListener(v -> {
             pressFeedback(v);
             cycleTheme();
