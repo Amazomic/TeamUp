@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 — 2026-11-22
+
+- Keep the keyboard hidden on app launch and resume unless a player name field is selected.
+- Dismiss the keyboard and clear input focus when finishing name entry, using controls, opening history, or leaving the app.
+
 ## 1.3.0 — 2026-10-31
 
 - Shuffle player names into fixed, balanced, contiguous team blocks instead of only changing row colors.

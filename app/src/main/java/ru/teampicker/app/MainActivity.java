@@ -23,6 +23,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -74,9 +75,15 @@ public class MainActivity extends Activity {
         window.setNavigationBarColor(BG);
         window.getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         buildScreen();
+    }
+
+    @Override protected void onPause() {
+        dismissKeyboard();
+        super.onPause();
     }
 
     @Override protected void onStop() {
@@ -99,6 +106,8 @@ public class MainActivity extends Activity {
         page.setOrientation(LinearLayout.VERTICAL);
         page.setClipChildren(false);
         page.setPadding(dp(18), dp(12), dp(18), dp(24));
+        page.setFocusableInTouchMode(true);
+        page.setOnClickListener(v -> dismissKeyboard());
         scroll.addView(page);
         setContentView(scroll);
 
@@ -114,6 +123,7 @@ public class MainActivity extends Activity {
         historyButton.setBackground(ripple(Color.WHITE, 12, withAlpha(ACCENT, 35)));
         header.addView(historyButton, new LinearLayout.LayoutParams(-2, dp(36)));
         historyButton.setOnClickListener(v -> {
+            dismissKeyboard();
             pressFeedback(v);
             showHistory();
         });
@@ -145,9 +155,12 @@ public class MainActivity extends Activity {
         buttonLp.topMargin = dp(14);
         page.addView(generate, buttonLp);
         generate.setOnClickListener(v -> {
+            dismissKeyboard();
             pressFeedback(v);
             generateTeams();
         });
+        // Initial focus stays on the screen, not the first name field.
+        page.requestFocus();
     }
 
     private View stepper(String title, boolean players) {
@@ -176,6 +189,7 @@ public class MainActivity extends Activity {
         if (players) playerValue = value; else teamValue = value;
         minus.setOnClickListener(v -> {
             if (isShuffling) return;
+            dismissKeyboard();
             if (players && playerCount > 2) {
                 playerCount--;
                 if (teamCount > playerCount) teamCount = playerCount;
@@ -193,6 +207,7 @@ public class MainActivity extends Activity {
         });
         plus.setOnClickListener(v -> {
             if (isShuffling) return;
+            dismissKeyboard();
             if (players && playerCount < 30) {
                 playerCount++;
                 resetBalancedAssignments();
@@ -242,6 +257,13 @@ public class MainActivity extends Activity {
             name.setHint("Player " + (i + 1));
             name.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             name.setImeOptions(i == playerCount - 1 ? EditorInfo.IME_ACTION_DONE : EditorInfo.IME_ACTION_NEXT);
+            name.setOnEditorActionListener((view, actionId, event) -> {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    dismissKeyboard();
+                    return true;
+                }
+                return false;
+            });
             name.setBackgroundColor(Color.TRANSPARENT);
             name.setPadding(dp(3), 0, dp(6), 0);
             if (i < oldNames.size()) name.setText(oldNames.get(i));
@@ -398,6 +420,16 @@ public class MainActivity extends Activity {
             @Override public void onAnimationCancel(Animator animation) { finish(); }
         });
         shuffleAnimator.start();
+    }
+
+    private void dismissKeyboard() {
+        View focused = getCurrentFocus();
+        if (focused != null) focused.clearFocus();
+        if (page != null) page.requestFocus();
+        InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (keyboard != null) {
+            keyboard.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
+        }
     }
 
     private void pressFeedback(View view) {
