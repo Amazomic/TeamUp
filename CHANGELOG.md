@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.3 — 2026-11-22
+
+- Replace the abrupt end of the startup animation with a smooth 540 ms crossfade into the main screen.
+- Reveal the interface with a subtle upward motion while the splash gently enlarges and fades away.
+- Blend status/navigation bar colors during the transition, and finish instantly when animations are disabled or the app is backgrounded.
+- Add a standalone regression test covering 144 overlapping opacity and motion states.
+
 ## 1.3.2 — 2026-11-22
 
 - New modern TeamUp launcher icon with the two-team shuffle motif.

@@ -14,6 +14,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.Editable;
@@ -44,6 +45,8 @@ public class MainActivity extends Activity {
     private static final int INK = Color.rgb(34, 42, 59);
     private static final int MUTED = Color.rgb(119, 128, 147);
     private static final int ACCENT = Color.rgb(79, 96, 224);
+    private static final int SPLASH_STATUS_BAR = Color.rgb(5, 111, 138);
+    private static final int SPLASH_NAV_BAR = Color.rgb(22, 46, 125);
     private static final int[] TEAM_COLORS = {
         Color.rgb(87, 105, 232), Color.rgb(25, 157, 124),
         Color.rgb(224, 145, 51), Color.rgb(164, 98, 207),
@@ -63,6 +66,8 @@ public class MainActivity extends Activity {
     private boolean isShuffling;
     private ValueAnimator shuffleAnimator;
     private SplashView splashView;
+    private View mainContent;
+    private ValueAnimator splashExitAnimator;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,7 +90,8 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
-        if (splashView != null) splashView.finish();
+        // Never keep an unfinished transition running in the background.
+        if (splashView != null) completeSplashExit();
         dismissKeyboard();
         super.onPause();
     }
@@ -98,24 +104,85 @@ public class MainActivity extends Activity {
 
     private void showSplash() {
         Window window = getWindow();
-        window.setStatusBarColor(Color.rgb(5, 111, 138));
-        window.setNavigationBarColor(Color.rgb(22, 46, 125));
+        window.setStatusBarColor(SPLASH_STATUS_BAR);
+        window.setNavigationBarColor(SPLASH_NAV_BAR);
         window.getDecorView().setSystemUiVisibility(0);
 
         FrameLayout content = findViewById(android.R.id.content);
+        // Prepare the actual UI under the splash; the two views will crossfade.
+        mainContent = content.getChildAt(0);
+        mainContent.setAlpha(0f);
+        mainContent.setTranslationY(dp(16));
+
         SplashView intro = new SplashView(this);
         splashView = intro;
         content.addView(intro, new FrameLayout.LayoutParams(-1, -1));
-        intro.play(() -> {
-            if (splashView != intro) return;
-            splashView = null;
-            content.removeView(intro);
-            window.setStatusBarColor(BG);
-            window.setNavigationBarColor(BG);
-            window.getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-            if (page != null) page.requestFocus();
+        intro.play(() -> startSplashExit(intro));
+    }
+
+    private void startSplashExit(SplashView intro) {
+        if (splashView != intro || splashExitAnimator != null) return;
+        // Respect system-wide disabled animations on Android 8+.
+        if (Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled()) {
+            completeSplashExit();
+            return;
+        }
+
+        Window window = getWindow();
+        ArgbEvaluator colors = new ArgbEvaluator();
+        ValueAnimator transition = ValueAnimator.ofFloat(0f, 1f);
+        splashExitAnimator = transition;
+        transition.setDuration(SplashTransition.DURATION_MS);
+        transition.setInterpolator(null);
+        transition.addUpdateListener(animation -> {
+            float progress = (float) animation.getAnimatedValue();
+            float lift = SplashTransition.contentOffset(progress);
+
+            intro.setAlpha(SplashTransition.introAlpha(progress));
+            float zoom = SplashTransition.introZoom(progress);
+            intro.setScaleX(zoom);
+            intro.setScaleY(zoom);
+            mainContent.setAlpha(SplashTransition.contentAlpha(progress));
+            mainContent.setTranslationY(dp(16) * lift);
+
+            float colorProgress = 1f - lift;
+            window.setStatusBarColor((Integer) colors.evaluate(
+                colorProgress, SPLASH_STATUS_BAR, BG));
+            window.setNavigationBarColor((Integer) colors.evaluate(
+                colorProgress, SPLASH_NAV_BAR, BG));
         });
+        transition.addListener(new AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) {
+                completeSplashExit();
+            }
+        });
+        transition.start();
+    }
+
+    private void completeSplashExit() {
+        if (splashExitAnimator != null) {
+            ValueAnimator transition = splashExitAnimator;
+            splashExitAnimator = null;
+            transition.removeAllListeners();
+            transition.cancel();
+        }
+
+        SplashView intro = splashView;
+        splashView = null;
+        if (intro != null && intro.getParent() instanceof FrameLayout) {
+            ((FrameLayout) intro.getParent()).removeView(intro);
+        }
+        if (mainContent != null) {
+            mainContent.setAlpha(1f);
+            mainContent.setTranslationY(0f);
+            mainContent = null;
+        }
+        Window window = getWindow();
+        window.setStatusBarColor(BG);
+        window.setNavigationBarColor(BG);
+        window.getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        if (page != null) page.requestFocus();
     }
 
     private void buildScreen() {
