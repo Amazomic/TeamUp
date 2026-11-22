@@ -42,7 +42,7 @@ Player names, team settings, and draw history are stored locally on the device. 
 ## Project details
 
 - Application ID: `ru.teampicker.app`
-- Current version: `1.3.1` (version code `9`)
+- Current version: `1.3.2` (version code `10`)
 - Minimum Android version: Android 6.0 (API 23)
 - Target Android version: Android 16 (API 36)
 

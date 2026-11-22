@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.2 — 2026-11-22
+
+- New modern TeamUp launcher icon with the two-team shuffle motif.
+- Animated opening screen: six players flow into teams along continuously interpolated paths, with a glowing ring and the text "Shuffle into teams".
+- Smooth screen-refresh animation (about 60 fps), 2.3 seconds, tap to skip; does not replay when returning from background.
+- Respect reduced-motion settings and leave player name fields unfocused.
+
 ## 1.3.1 — 2026-11-22
 
 - Keep the keyboard hidden on app launch and resume unless a player name field is selected.

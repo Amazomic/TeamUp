@@ -19,6 +19,7 @@ import android.text.TextWatcher;
 import android.text.Editable;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.Window;
 import android.view.WindowManager;
@@ -61,6 +62,7 @@ public class MainActivity extends Activity {
     private boolean changingFields;
     private boolean isShuffling;
     private ValueAnimator shuffleAnimator;
+    private SplashView splashView;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,9 +81,11 @@ public class MainActivity extends Activity {
             | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         buildScreen();
+        if (savedInstanceState == null) showSplash();
     }
 
     @Override protected void onPause() {
+        if (splashView != null) splashView.finish();
         dismissKeyboard();
         super.onPause();
     }
@@ -90,6 +94,28 @@ public class MainActivity extends Activity {
         // Finish an interrupted draw so fields never remain hidden.
         if (shuffleAnimator != null) shuffleAnimator.end();
         super.onStop();
+    }
+
+    private void showSplash() {
+        Window window = getWindow();
+        window.setStatusBarColor(Color.rgb(5, 111, 138));
+        window.setNavigationBarColor(Color.rgb(22, 46, 125));
+        window.getDecorView().setSystemUiVisibility(0);
+
+        FrameLayout content = findViewById(android.R.id.content);
+        SplashView intro = new SplashView(this);
+        splashView = intro;
+        content.addView(intro, new FrameLayout.LayoutParams(-1, -1));
+        intro.play(() -> {
+            if (splashView != intro) return;
+            splashView = null;
+            content.removeView(intro);
+            window.setStatusBarColor(BG);
+            window.setNavigationBarColor(BG);
+            window.getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+            if (page != null) page.requestFocus();
+        });
     }
 
     private void buildScreen() {
